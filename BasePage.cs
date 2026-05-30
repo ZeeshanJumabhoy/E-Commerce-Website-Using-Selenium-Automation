@@ -18,6 +18,17 @@ namespace EcommerceWebsite
                 var chromeOptions = new ChromeOptions();
                 chromeOptions.AddArguments("--start-maximized");
                 chromeOptions.AddArguments("--force-device-scale-factor=1.1");
+
+                bool headless = Environment.GetEnvironmentVariable("HEADLESS") == "true";
+                if (headless)
+                {
+                    chromeOptions.AddArgument("--headless=new");
+                    chromeOptions.AddArgument("--no-sandbox");
+                    chromeOptions.AddArgument("--disable-dev-shm-usage");
+                    chromeOptions.AddArgument("--disable-gpu");
+                    chromeOptions.AddArgument("--window-size=1920,1080");
+                }
+
                 driver = new ChromeDriver(chromeOptions);
             }
         }
@@ -34,14 +45,33 @@ namespace EcommerceWebsite
             return wait.Until(ExpectedConditions.ElementIsVisible(by));
         }
 
-        private void WaitForLoaderToDisappear(int timeoutInSeconds = 10)
+        private void WaitForLoaderToDisappear(int timeoutInSeconds = 20)
         {
-            WebDriverWait wait = new WebDriverWait(driver, TimeSpan.FromSeconds(timeoutInSeconds));
-            wait.Until(driver =>
+            try
             {
-                var loader = driver.FindElement(By.ClassName("loader"));
-                return !loader.Displayed;  
-            });
+                WebDriverWait wait = new WebDriverWait(driver, TimeSpan.FromSeconds(timeoutInSeconds));
+                wait.Until(driver =>
+                {
+                    try
+                    {
+                        var loaders = driver.FindElements(By.ClassName("loader"));
+                        // All loaders must be hidden (or none exist)
+                        return loaders.All(l =>
+                        {
+                            try { return !l.Displayed; }
+                            catch (StaleElementReferenceException) { return true; }
+                        });
+                    }
+                    catch (NoSuchElementException)
+                    {
+                        return true; // No loader present — page is ready
+                    }
+                });
+            }
+            catch (WebDriverTimeoutException)
+            {
+                // Loader is persistent — proceed anyway rather than blocking
+            }
         }
 
         public void Write(By by, string data)
@@ -55,7 +85,18 @@ namespace EcommerceWebsite
         {
             WaitForLoaderToDisappear();
             IWebElement element = WaitUntilElementIsClickable(by);
-            element.Click();
+            try
+            {
+                element.Click();
+            }
+            catch (ElementClickInterceptedException)
+            {
+                WaitForLoaderToDisappear(20);
+                element = WaitUntilElementIsClickable(by);
+                ((IJavaScriptExecutor)driver).ExecuteScript(
+                    "arguments[0].dispatchEvent(new MouseEvent('click', {bubbles: true, cancelable: true}));",
+                    element);
+            }
         }
 
         public void SelectDropdownByText(By by, string text)

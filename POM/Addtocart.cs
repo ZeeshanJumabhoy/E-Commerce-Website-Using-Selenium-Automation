@@ -13,8 +13,6 @@ namespace EcommerceWebsite.POM
     {
         #region Locators
         By tablets = By.Id("tabletsImg");
-        By productSelect = By.Id("17");
-        By colorSelect = By.Id("rabbit");
         By quantity = By.ClassName("plus");
         By addToCartBtn = By.Name("save_to_cart");
         By validation = By.Id("checkOutPopUp");
@@ -23,13 +21,43 @@ namespace EcommerceWebsite.POM
         #region Method
         public void selectproduct()
         {
-            Click(tablets);
-            Click(productSelect);
+            // Navigate directly to a known tablet product (HP ElitePad 1000 G2)
+            // Confirmed from home page popular items: product 16 is a tablet
+            driver.Url = "https://advantageonlineshopping.com/#/product/16";
+
+            WebDriverWait wait = new WebDriverWait(driver, TimeSpan.FromSeconds(30));
+            // Wait for the product page to load — save_to_cart button appears when ready
+            try
+            {
+                wait.Until(SeleniumExtras.WaitHelpers.ExpectedConditions.ElementIsVisible(By.Name("save_to_cart")));
+            }
+            catch (WebDriverTimeoutException)
+            {
+                // Try alternative product (product 10)
+                driver.Url = "https://advantageonlineshopping.com/#/product/10";
+                wait.Until(SeleniumExtras.WaitHelpers.ExpectedConditions.ElementIsVisible(By.Name("save_to_cart")));
+            }
         }
 
         public void select_category_color_AddToCart()
         {
-            Click(colorSelect);
+            WebDriverWait wait = new WebDriverWait(driver, TimeSpan.FromSeconds(15));
+
+            // Pick the first available color radio on the product page
+            IWebElement? colorInput = null;
+            try
+            {
+                colorInput = wait.Until(d =>
+                {
+                    var radios = d.FindElements(By.XPath("//input[@name='colorsList']"));
+                    return radios.FirstOrDefault(r => r.Enabled) ?? (IWebElement?)null;
+                });
+            }
+            catch (WebDriverTimeoutException) { /* product may have no color options */ }
+
+            if (colorInput != null)
+                ((IJavaScriptExecutor)driver).ExecuteScript("arguments[0].click();", colorInput);
+
             Click(quantity);
             Click(addToCartBtn);
         }

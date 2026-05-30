@@ -17,6 +17,13 @@ namespace EcommerceWebsite
         private Checkout checkout;
         private MenuFunction menuFunction;
 
+        // Read from environment variables (set via GitHub Secrets or local .env)
+        private static readonly string BaseUrl =
+            Environment.GetEnvironmentVariable("BASE_URL") ?? "https://advantageonlineshopping.com/#/";
+        private static readonly string TestUsername =
+            Environment.GetEnvironmentVariable("TEST_USERNAME") ?? "zeeshaniya";
+        private static readonly string TestPassword =
+            Environment.GetEnvironmentVariable("TEST_PASSWORD") ?? "Zeeshan@123";
 
         [TestInitialize]
         public void Setup()
@@ -38,10 +45,7 @@ namespace EcommerceWebsite
         public void TestRegister_TC001()
         {
             // Test data
-            string username = "zeeshaniya";
             string email = "zeeshan@example.com";
-            string password = "Zeeshan@123";
-            string confirmPassword = "Zeeshan@123";
             string firstName = "Zeeshan";
             string lastName = "Mustafa";
             string phone = "1234567890";
@@ -52,9 +56,7 @@ namespace EcommerceWebsite
             string postalCode = "74000";
             bool receiveOffers = true;
 
-            string Url = "https://advantageonlineshopping.com/#/";
-
-            RegisterAccount.Register(Url, username, email, password, confirmPassword,
+            RegisterAccount.Register(BaseUrl, TestUsername, email, TestPassword, TestPassword,
                                       firstName, lastName, phone, country, city,
                                       address, state, postalCode, receiveOffers);
         }
@@ -64,10 +66,7 @@ namespace EcommerceWebsite
         [AllureDescription("Test to verify user")]
         public void TestLogin_TC002()
         {
-            string username = "zeeshaniya";
-            string password = "Zeeshan@123";
-            string Url = "https://advantageonlineshopping.com/#/";
-            loginPage.Login(Url, username, password);
+            loginPage.Login(BaseUrl, TestUsername, TestPassword);
         }
 
         [TestMethod]
@@ -77,9 +76,8 @@ namespace EcommerceWebsite
         {
             string username = "kumail";
             string password = "kusdkjn";
-            string Url = "https://advantageonlineshopping.com/#/";
 
-            loginPage.Login(Url, username, password);
+            loginPage.LoginWithoutValidation(BaseUrl, username, password);
 
             try
             {
@@ -96,10 +94,7 @@ namespace EcommerceWebsite
         [AllureDescription("Test to verify Add to Cart functionality")]
         public void TestAddToCart_TC004()
         {
-            string username = "zeeshaniya";
-            string password = "Zeeshan@123";
-            string Url = "https://advantageonlineshopping.com/#/";
-            loginPage.Login(Url, username, password);
+            loginPage.Login(BaseUrl, TestUsername, TestPassword);
             addToCartPage.addToCart();
         }
 
@@ -107,12 +102,9 @@ namespace EcommerceWebsite
         [AllureDescription("Test to add to cart and checkout with SafePay")]
         public void TestCheckOut_TC005()
         {
-            string username = "zeeshaniya";
-            string password = "Zeeshan@123";
             string payType = "SafePay";
-            string Url = "https://advantageonlineshopping.com/#/";
 
-            loginPage.Login(Url, username, password);
+            loginPage.Login(BaseUrl, TestUsername, TestPassword);
             addToCartPage.addToCart();
             if (payType == "SafePay")
             {
@@ -158,12 +150,9 @@ namespace EcommerceWebsite
         [AllureDescription("Test to verify user registration functionality with master card")]
         public void TestCheckOut_TC006()
         {
-            string username = "zeeshaniya";
-            string password = "Zeeshan@123";
             string payType = "Master";
-            string Url = "https://advantageonlineshopping.com/#/";
 
-            loginPage.Login(Url, username, password);
+            loginPage.Login(BaseUrl, TestUsername, TestPassword);
             addToCartPage.addToCart();
             if (payType == "SafePay")
             {
@@ -208,10 +197,7 @@ namespace EcommerceWebsite
         [AllureDescription("Test to Signout")]
         public void TestSignout_TC007()
         {
-            string username = "zeeshaniya";
-            string password = "Zeeshan@123";
-            string Url = "https://advantageonlineshopping.com/#/";
-            loginPage.Login(Url, username, password);
+            loginPage.Login(BaseUrl, TestUsername, TestPassword);
             Thread.Sleep(1000);
             menuFunction.signout();
         }

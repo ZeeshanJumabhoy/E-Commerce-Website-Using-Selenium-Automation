@@ -23,7 +23,16 @@ namespace EcommerceWebsite.POM
             Write(usernameTXT, user);
             Write(passwordTXT, pass);
             Click(loginBTN);
-            ValidateLogin(user); 
+            ValidateLogin(user);
+        }
+
+        public void LoginWithoutValidation(string url, string user, string pass)
+        {
+            OpenURL(url);
+            Click(menuUser);
+            Write(usernameTXT, user);
+            Write(passwordTXT, pass);
+            Click(loginBTN);
         }
 
         private void ValidateLogin(string user)

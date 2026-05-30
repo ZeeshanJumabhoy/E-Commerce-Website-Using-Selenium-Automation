@@ -1,0 +1,98 @@
+name: E2E Tests
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:  # enables manual "Run workflow" button in GitHub UI
+
+jobs:
+  test:
+    # Run when triggered manually OR when commit message contains "Run the pipeline"
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, 'Run the pipeline')
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Install Google Chrome
+        run: |
+          wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
+          echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
+          sudo apt-get update
+          sudo apt-get install -y google-chrome-stable
+
+      - name: Write .env file from secrets
+        run: |
+          cat > .env << 'EOF'
+          BASE_URL=${{ secrets.BASE_URL }}
+          TEST_USERNAME=${{ secrets.TEST_USERNAME }}
+          TEST_PASSWORD=${{ secrets.TEST_PASSWORD }}
+          HEADLESS=true
+          EOF
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore --configuration Release
+
+      - name: Run E2E tests
+        run: |
+          dotnet test --no-build --configuration Release \
+            --logger "trx;LogFileName=test-results.trx" \
+            --logger "html;LogFileName=test-results.html" \
+            --results-directory TestResults \
+            -v normal
+        env:
+          BASE_URL: ${{ secrets.BASE_URL }}
+          TEST_USERNAME: ${{ secrets.TEST_USERNAME }}
+          TEST_PASSWORD: ${{ secrets.TEST_PASSWORD }}
+          HEADLESS: "true"
+
+      - name: Test Results Summary
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: Test Results Summary
+          path: TestResults/test-results.trx
+          reporter: dotnet-trx
+          fail-on-error: false
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload HTML Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: html-report-${{ github.run_number }}
+          path: TestResults/test-results.html
+          retention-days: 14
+
+      - name: Upload Allure results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: allure-results-${{ github.run_number }}
+          path: allure-results/
+          retention-days: 14
+
+      - name: Upload TRX results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trx-results-${{ github.run_number }}
+          path: TestResults/
+          retention-days: 14
