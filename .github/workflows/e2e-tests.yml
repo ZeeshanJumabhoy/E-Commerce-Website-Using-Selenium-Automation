@@ -73,6 +73,32 @@ jobs:
           fail-on-error: false
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Write job summary
+        if: always()
+        run: |
+          TRX="TestResults/test-results.trx"
+          if [ ! -f "$TRX" ]; then
+            echo "## Test Summary" >> $GITHUB_STEP_SUMMARY
+            echo "No test results file found." >> $GITHUB_STEP_SUMMARY
+            exit 0
+          fi
+
+          total=$(grep -oP 'total="\K[0-9]+' "$TRX" | head -1)
+          passed=$(grep -oP 'passed="\K[0-9]+' "$TRX" | head -1)
+          failed=$(grep -oP 'failed="\K[0-9]+' "$TRX" | head -1)
+          skipped=$(grep -oP 'notExecuted="\K[0-9]+' "$TRX" | head -1)
+
+          total=${total:-0}
+          passed=${passed:-0}
+          failed=${failed:-0}
+          skipped=${skipped:-0}
+
+          echo "## Test Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| | Tests | Passed ✅ | Skipped ⏭️ | Failed ❌ |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|---|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| Test Results Summary | ${total} ran | ${passed} passed | ${skipped} skipped | ${failed} failed |" >> $GITHUB_STEP_SUMMARY
+
       - name: Upload HTML Report
         if: always()
         uses: actions/upload-artifact@v4
