@@ -28,12 +28,37 @@ jobs:
         with:
           dotnet-version: "8.0.x"
 
-      - name: Install Google Chrome
+      - name: Install Google Chrome and ChromeDriver
         run: |
           wget -q -O - https://dl.google.com/linux/linux_signing_key.pub | sudo apt-key add -
           echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" | sudo tee /etc/apt/sources.list.d/google-chrome.list
           sudo apt-get update
           sudo apt-get install -y google-chrome-stable
+
+          # Install matching ChromeDriver via Chrome for Testing
+          CHROME_VERSION=$(google-chrome --version | grep -oP '\d+\.\d+\.\d+\.\d+')
+          CHROME_MAJOR=$(echo $CHROME_VERSION | cut -d. -f1)
+          echo "Chrome version: $CHROME_VERSION (major: $CHROME_MAJOR)"
+
+          DRIVER_URL=$(curl -s "https://googlechromelabs.github.io/chrome-for-testing/known-good-versions-with-downloads.json" \
+            | python3 -c "
+          import sys, json
+          data = json.load(sys.stdin)
+          major = '$CHROME_MAJOR'
+          for v in reversed(data['versions']):
+              if v['version'].split('.')[0] == major:
+                  for d in v.get('downloads', {}).get('chromedriver', []):
+                      if d['platform'] == 'linux64':
+                          print(d['url'])
+                          sys.exit(0)
+          ")
+
+          echo "ChromeDriver URL: $DRIVER_URL"
+          wget -q "$DRIVER_URL" -O /tmp/chromedriver.zip
+          unzip -q /tmp/chromedriver.zip -d /tmp/chromedriver_dir
+          sudo mv /tmp/chromedriver_dir/chromedriver-linux64/chromedriver /usr/local/bin/chromedriver
+          sudo chmod +x /usr/local/bin/chromedriver
+          chromedriver --version
 
       - name: Write .env file from secrets
         run: |
@@ -114,6 +139,7 @@ jobs:
           name: allure-results-${{ github.run_number }}
           path: allure-results/
           retention-days: 14
+          if-no-files-found: ignore
 
       - name: Upload TRX results
         if: always()
