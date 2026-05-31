@@ -1,5 +1,9 @@
 # 🛒 Automation Testing for Ecommerce Website & Mobile Application  
 
+<p align="center">
+  <img src="showcase/showcase.svg" alt="Selenium × Advantage E-Commerce — animated showcase of POM architecture, test results, code preview, and CI/CD pipeline" width="100%"/>
+</p>
+
 This project focuses on **automation testing** for an **ecommerce website** ([AvantageOnlineShopping.com](#)) and a **mobile game application (Toucher)**. The goal is to ensure **functionality, reliability, and performance** through automated test cases.  
 
 ## 🚀 Key Features  
